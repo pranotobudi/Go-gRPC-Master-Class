@@ -23,7 +23,9 @@ func main() {
 	defer cc.Close()
 	c := calculatorpb.NewCalculatorServiceClient(cc)
 	// doUnary(c)
-	doServerStreaming(c)
+	// doServerStreaming(c)
+	// doClientStreaming(c)
+	doBiDiStreaming(c)
 
 }
 
@@ -67,4 +69,72 @@ func doServerStreaming(c calculatorpb.CalculatorServiceClient) {
 
 	}
 
+}
+
+func doClientStreaming(c calculatorpb.CalculatorServiceClient) {
+
+	stream, err := c.ComputeAverage(context.Background())
+	if err != nil {
+		log.Println("failed")
+	}
+	var requests = []*calculatorpb.ComputeAverageRequest{
+		&calculatorpb.ComputeAverageRequest{
+			Number: 2,
+		},
+		&calculatorpb.ComputeAverageRequest{
+			Number: 4,
+		},
+	}
+	for _, request := range requests {
+		stream.Send(request)
+		time.Sleep(100 * time.Millisecond)
+	}
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Println("failed receiving data")
+	}
+	log.Println("average: ", res.GetResult())
+}
+
+func doBiDiStreaming(c calculatorpb.CalculatorServiceClient) {
+	stream, err := c.FindMaximum(context.Background())
+	if err != nil {
+		log.Println("failed connecting the server...")
+	}
+	//send messages
+	var numbers = []int64{6, 1, 2, 3, 4, 5}
+	waitc := make(chan struct{})
+	// var wg sync.WaitGroup
+	go func() {
+		for _, val := range numbers {
+			time.Sleep(100 * time.Millisecond)
+			req := &calculatorpb.FindMaximumRequest{
+				Number: val,
+			}
+			// wg.Add(1)
+			stream.Send(req)
+			// wg.Done()
+		}
+		stream.CloseSend()
+	}()
+
+	//receive messages
+	go func() {
+		for {
+			// wg.Add(1)
+			res, err := stream.Recv()
+			// wg.Done()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				fmt.Println("failed to receive the message")
+			}
+			fmt.Println("result: ", res.GetResult())
+		}
+		close(waitc)
+	}()
+
+	// wg.Wait()
+	<-waitc
 }
