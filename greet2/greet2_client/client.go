@@ -19,7 +19,7 @@ func main() {
 	}
 	defer conn.Close()
 	client := greet2pb.NewGreetServiceClient(conn)
-	fmt.Println("created client: %v", client)
+	fmt.Printf("created client: %v", client)
 	// doUnary(client)
 	// doServerStreaming(client)
 	// doClientStreaming(client)

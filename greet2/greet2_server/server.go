@@ -18,7 +18,7 @@ type server struct {
 }
 
 func (s *server) Greet(ctx context.Context, req *greet2pb.GreetRequest) (*greet2pb.GreetResponse, error) {
-	fmt.Println("Greet function is called with %v", req)
+	fmt.Printf("Greet function is called with %v", req)
 	firstName := req.GetGreeting().FirstName
 	// firstName := req.GetGreeting().GetFirstName()
 	lastName := req.GetGreeting().LastName
